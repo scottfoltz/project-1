@@ -32,6 +32,7 @@ struct Packet
 
 bool getAcknowledgementPacket(Packet& m, struct sockaddr_in& server_sockaddr, int& udp_socket);
 using namespace std;
+void printResults(unordered_set <int>& droppedPackets, int totalPackets);
 
 // busy_wait will wait the specified number of microseconds before returning.
 // I'd love to say more but what I'd say is posed as questions in P1's 
@@ -166,6 +167,9 @@ int main(int argc, char *argv[])
 
 	Packet m;
 	ssize_t bytes_sent;
+
+	//Initialize the data for numOfPackets to the total number of packets to send
+	//These will then be deleted as 'A' packets are received leaving only dropped sequence numbers
 	unordered_set <int> numOfPackets;
 	for (int x = 0; x < number_of_packets; x++)
 	{
@@ -174,7 +178,6 @@ int main(int argc, char *argv[])
 
 	for (int i = 0; i < number_of_packets; i++)
 	{
-	  //cout << "for loop iteration " << i << endl;
 		// Fill in the sequece number in a network portable manner.
 		//htonl breaks unsigned int
 		m.command = 'D';
@@ -198,26 +201,28 @@ int main(int argc, char *argv[])
 	//get acknowledgement packet from server
 		if(getAcknowledgementPacket(m, server_sockaddr, udp_socket)){
 	  //if acknowledgement has been recieved, good, if not then send another packet anyways
-			numOfPackets.erase(htonl((int)m.sequence_number));
+			//Deletes the received packets, leaving only the dropped ones at the end
+			numOfPackets.erase(m.sequence_number);
 	}
 	else
         {
 	  //else remove the sequence number from the list!
+      
 	}
 	//then send another packet once recieved?
 	}
 	//Checks if an E command is to be sent
 	//Needs to busywait/sleep before being sent to make sure the message is received
+	
+	printResults(numOfPackets, number_of_packets);
 	if(userExit)
 	{
-		
 		Packet e;
 		e.sequence_number = 0;
 		e.command = 'E';
 		bytes_sent = sendto(udp_socket, (void *) &e, sizeof(e), 0, (struct sockaddr *) &server_sockaddr, sizeof(server_sockaddr));
 	}
-	cout << "size" << numOfPackets.size();
-	cout << "All " << number_of_packets << " messages sent." << endl;
+
 	return 0;
 }
 
@@ -244,4 +249,30 @@ bool getAcknowledgementPacket(Packet& m, struct sockaddr_in& server_sockaddr, in
        }
      }
   return retval;
+}
+//--
+void printResults(unordered_set <int>& droppedPackets, int totalPackets)
+{
+	cout << droppedPackets.size() << " out of " << totalPackets << " dropped" << endl;
+	
+	//TotalToPrint will iterate up to 100
+	//This could probably be written more coherently, but not right now, I guess
+	int totalToPrint = 0;
+	cout << "First 100 Dropped Packet sequence numbers:" << endl;
+	for(int x = 0; x < totalPackets; x++)
+	{
+		if(droppedPackets.find(x) == droppedPackets.end())
+		{
+			//do nothing
+		}
+		else if(totalToPrint >= 100)
+		{
+			break;
+		}
+		else
+		{
+			cout << *droppedPackets.find(x) << endl;
+			totalToPrint++;
+		}
+	}
 }
