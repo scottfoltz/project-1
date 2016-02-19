@@ -101,7 +101,6 @@ struct timeval this_time;
 
 while ((bytes_read = recvfrom(udp_socket, &p, sizeof(p) + p.length, 0, (struct sockaddr *) &client_sockaddr, &client_length)) >= 0)
   {
-
 //we will now take apart the packet that has been recieved and
 //parse out that meta-data (a struct called a packet)
 //and either send back an 'A' or drop the packet.
@@ -112,12 +111,16 @@ break;
  case 'E':
 exit(0);
 break;
+//added }
+}
 //the first two if's are checking for the command being recieved and that the packet was not too big
 if(contains_payload){
+
 if(!(bytes_read > (size_t)MAXIMUM_DATA_LENGTH)){
 //if all our conditions are satisfied, then we can send back a packet that contains command 'A', and other info
 
 send_back_packet.command = 'A';
+
 send_back_packet.sequence_number = p.sequence_number;
 gettimeofday(&this_time, nullptr);
 send_back_packet.tv = this_time;
@@ -137,7 +140,7 @@ cout<< "The packet #" << p.sequence_number << " was dropped because it exceeded 
  else{
 cout << "The packet #" << p.sequence_number << " was dropped because the command 'D' was not issued" << endl;
 }
-}
+//Removed a }
 memset(&p, 0, sizeof(p));
 }
 
