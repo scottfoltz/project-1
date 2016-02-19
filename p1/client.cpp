@@ -1,7 +1,7 @@
 /*	Datagram sample client.
 	CSC 3600 - Carthage College - Prof. Kivolowitz - Spring 2016
 */
-
+#include <sys/types.h>
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,7 +17,7 @@
 
 const unsigned short DEFAULT_PORT = 5077;
 const int MAXIMUM_DATA_LENGTH = 500;
-
+//#define MSG_NOBLOCK 0x01
 struct Packet
 {
 	char command;
@@ -30,13 +30,8 @@ struct Packet
 	unsigned char payload[];	
 };
 
+bool getAcknowledgementPacket(Packet& m, struct sockaddr_in& server_sockaddr, int& udp_socket);
 using namespace std;
-
-struct Message
-{
-	// It's just an int. What could possibly go wrong?
-	int sequence_number;
-};
 
 // busy_wait will wait the specified number of microseconds before returning.
 // I'd love to say more but what I'd say is posed as questions in P1's 
@@ -57,17 +52,18 @@ void busy_wait(unsigned int microseconds)
 
 int main(int argc, char *argv[])
 {
+  cout << "start of main!" << endl;
     unsigned int uinterval = 1000;
 	int udp_socket;
 	int server_port = 5077;
 	int number_of_packets = 10000;
 	bool userExit = false;
-	int userExitInt = 0;
+	//int userExitInt = 0;
 	//Ammount of time the client will run before auto exiting (in seconds)
 	int timeToRun = 1000;
 	char * server_address = (char *) "127.0.0.1";
 	unsigned short uLength;
-
+	
 	struct sockaddr_in server_sockaddr;
 	struct hostent * server_hostent;
 
@@ -77,8 +73,10 @@ int main(int argc, char *argv[])
 	// externally defined char pointer "optarg". Note that the use of atoi() is
 	// risky in general but suffices here. I would ward you away from using it in
 	// production code.
+	cout << "Before while loop!" << endl;
 	while ((c = getopt(argc, argv, "hs:n:r:p:t:ed:")) != -1)
 	{
+	  cout << "Before switch cases!" << endl;
 		switch (c)
 		{
 			case 'h':
@@ -118,7 +116,8 @@ int main(int argc, char *argv[])
 			case 'd':
 				uLength = atoi(optarg);
 				break;
-
+	              	default:
+		                break;
 
 		}
 	}
@@ -136,7 +135,7 @@ int main(int argc, char *argv[])
 		perror("ERROR opening socket");
 		exit(1);
 	}
-
+	cout << "Made it to line 134" << endl;
 	// gethostbyname() may cause a DNS lookup to translate a URI into an IPv4 address.
 	// Note that gethostbyname() is deprecated but most sample programs use it. The
 	// function has been replaced by getaddrinfo() which is WAY more complicated. Maybe
@@ -155,6 +154,7 @@ int main(int argc, char *argv[])
 	// The family specifies an INTERNET socket rather than a file system socket.
 	server_sockaddr.sin_family = AF_INET;
 
+
 	// Initialize the server address by copying the results of gethostbyname. Note
 	// many samples online use bcopy. This is not portable. memmove is more powerful
 	// than memcopy so is used here (even though, by construction, the benefits of
@@ -164,37 +164,84 @@ int main(int argc, char *argv[])
 	// To assign the port number, use host-to-network-short.
 	server_sockaddr.sin_port = htons(server_port);
 
-	//Packet m;
 	Packet m;
 	ssize_t bytes_sent;
-
-	for (unsigned int i = 0; i < number_of_packets; i++)
+	unordered_set <int> numOfPackets;
+	for (int x = 0; x < number_of_packets; x++)
 	{
+		numOfPackets.insert(x);
+	}
+
+	for (int i = 0; i < number_of_packets; i++)
+	{
+	  //cout << "for loop iteration " << i << endl;
 		// Fill in the sequece number in a network portable manner.
 		//htonl breaks unsigned int
 		m.command = 'D';
+		//cout << "after command" << endl;
 		m.sequence_number = htonl(i);
 		// sendto() contains everything we need to know as UDP is entirely stateless. It returns
 		// the number of bytes sent. It behooves you to ensure this is correct especially if
 		// MSG_DONTWAIT is used (it is not used here).
+		//cout << "before packet sent!" << endl;
 		bytes_sent = sendto(udp_socket, (void *) &m, sizeof(m), 0, (struct sockaddr *) &server_sockaddr, sizeof(server_sockaddr));
+		//cout << "Packet sent!" << endl;
 		if (bytes_sent != sizeof(m))
 		{
 			cerr << "Number of bytes sent [" << bytes_sent << "] does not match message size." << endl;
 			break;
 		}
-        if (uinterval > 0)
-			busy_wait(uinterval);
+		//busy wait so that the server has time to process our packet and send its own back	
+		//cout <<"before busy wait" << endl;
+		if (uinterval > 0)
+	  {		busy_wait(uinterval);}
+	//get acknowledgement packet from server
+		if(getAcknowledgementPacket(m, server_sockaddr, udp_socket)){
+	  //if acknowledgement has been recieved, good, if not then send another packet anyways
+			numOfPackets.erase(htonl((int)m.sequence_number));
+	}
+	else
+        {
+	  //else remove the sequence number from the list!
+	}
+	//then send another packet once recieved?
 	}
 	//Checks if an E command is to be sent
 	//Needs to busywait/sleep before being sent to make sure the message is received
 	if(userExit)
 	{
+		
 		Packet e;
 		e.sequence_number = 0;
 		e.command = 'E';
 		bytes_sent = sendto(udp_socket, (void *) &e, sizeof(e), 0, (struct sockaddr *) &server_sockaddr, sizeof(server_sockaddr));
 	}
+	cout << "size" << numOfPackets.size();
 	cout << "All " << number_of_packets << " messages sent." << endl;
 	return 0;
+}
+
+//returns true if packet was recieved
+bool getAcknowledgementPacket(Packet& m, struct sockaddr_in& server_sockaddr, int& udp_socket){
+  bool retval = false;
+  ssize_t bytes_read;
+   socklen_t server_length = sizeof(server_sockaddr);
+  //packet will contain data
+  if((bytes_read = recvfrom(udp_socket, &m, sizeof(m) + m.length, MSG_DONTWAIT, (struct sockaddr *) &server_sockaddr, &server_length)) >= 0)
+     {
+       //we will now take apart the packet that has been recieved and
+       //parse out that meta-data from the server and check for an acknowledged packet
+       switch(m.command){
+       case 'A':
+	 //packet acknowledment
+	 retval = true;
+	 cout << "\nClient Recieved Acknowledgement!" << endl;
+	 break;
+       default:
+	 
+	 break;
+	 //no packet!
+       }
+     }
+  return retval;
 }
