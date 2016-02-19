@@ -104,14 +104,14 @@ while ((bytes_read = recvfrom(udp_socket, &p, sizeof(p) + p.length, 0, (struct s
 //we will now take apart the packet that has been recieved and
 //parse out that meta-data (a struct called a packet)
 //and either send back an 'A' or drop the packet.
-switch(p.command){
- case 'D':
-contains_payload = true;
-break;
- case 'E':
-exit(0);
-break;
-//added }
+  switch(p.command){
+   case 'D':
+    contains_payload = true;
+  break;
+   case 'E':
+  exit(0);
+  break;
+  //added }
 }
 //the first two if's are checking for the command being recieved and that the packet was not too big
 if(contains_payload){
