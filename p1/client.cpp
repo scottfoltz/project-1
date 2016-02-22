@@ -89,7 +89,8 @@ int main(int argc, char *argv[])
 				cerr << "   -r delay in microseconds ... defaults to " << uinterval << endl;
 				cerr << "   -t timeToRun ... defaults to " << timeToRun << endl;
 				cerr << "   -e sends an E pack before exiting to the server " << endl;
-				cerr << "   -d sets packet length" << endl;
+				cerr << "   -l sets packet length" << endl;
+				cerr << "   -d duration of the program in seconds " << endl;
                 exit(0);
 
 			case 's':
@@ -114,11 +115,20 @@ int main(int argc, char *argv[])
 			//Perhaps use this bool to check at the end of the client whether to send e packet
 				userExit = true;
 				break;
-			case 'd':
+			case 'l':
 				uLength = atoi(optarg);
+				//check length here
+				//make sure it is within the constrains of the MAX_LENGTH
+				if(uLength <= 0 && uLength >= MAXIMUM_DATA_LENGTH){
+					//reset to max_data_length if outside range
+					uLength = MAXIMUM_DATA_LENGTH;
+				}
 				break;
-	              	default:
-		                break;
+			case 'd':
+				//duration of the program in seconds
+				//10 should be default
+	        default:
+		        break;
 
 		}
 	}
@@ -176,6 +186,7 @@ int main(int argc, char *argv[])
 		numOfPackets.insert(x);
 	}
 
+
 	for (int i = 0; i < number_of_packets; i++)
 	{
 		// Fill in the sequece number in a network portable manner.
@@ -197,7 +208,11 @@ int main(int argc, char *argv[])
 		//busy wait so that the server has time to process our packet and send its own back	
 		//cout <<"before busy wait" << endl;
 		if (uinterval > 0)
-	  	{		busy_wait(uinterval);}
+	  	{	
+	  		//DO NOT USE HERE
+	  		busy_wait(uinterval);
+	  	}
+
 	//get acknowledgement packet from server
 		if(getAcknowledgementPacket(m, server_sockaddr, udp_socket)){
 	  //if acknowledgement has been recieved, good, if not then send another packet anyways
