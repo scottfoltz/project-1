@@ -53,10 +53,10 @@ void busy_wait(unsigned int microseconds)
 
 int main(int argc, char *argv[])
 {
-  cout << "start of main!" << endl;
+  	cout << "start of main!" << endl;
     unsigned int uinterval = 1000;
 	int udp_socket;
-	int server_port = 5077;
+	int server_port = DEFAULT_PORT;
 	int number_of_packets = 10000;
 	bool userExit = false;
 	//int userExitInt = 0;
@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
 		//busy wait so that the server has time to process our packet and send its own back	
 		//cout <<"before busy wait" << endl;
 		if (uinterval > 0)
-	  {		busy_wait(uinterval);}
+	  	{		busy_wait(uinterval);}
 	//get acknowledgement packet from server
 		if(getAcknowledgementPacket(m, server_sockaddr, udp_socket)){
 	  //if acknowledgement has been recieved, good, if not then send another packet anyways
@@ -230,24 +230,24 @@ int main(int argc, char *argv[])
 bool getAcknowledgementPacket(Packet& m, struct sockaddr_in& server_sockaddr, int& udp_socket){
   bool retval = false;
   ssize_t bytes_read;
-   socklen_t server_length = sizeof(server_sockaddr);
+  socklen_t server_length = sizeof(server_sockaddr);
   //packet will contain data
   if((bytes_read = recvfrom(udp_socket, &m, sizeof(m) + m.length, MSG_DONTWAIT, (struct sockaddr *) &server_sockaddr, &server_length)) >= 0)
-     {
-       //we will now take apart the packet that has been recieved and
-       //parse out that meta-data from the server and check for an acknowledged packet
-       switch(m.command){
-       case 'A':
-	 //packet acknowledment
-	 retval = true;
-	 cout << "\nClient Recieved Acknowledgement!" << endl;
-	 break;
-       default:
-	 
-	 break;
-	 //no packet!
+  {
+   //we will now take apart the packet that has been recieved and
+   //parse out that meta-data from the server and check for an acknowledged packet
+   switch(m.command)
+   {
+   	case 'A':
+		//packet acknowledment
+	  	retval = true;
+		cout << "\nClient Recieved Acknowledgement!" << endl;
+		break;
+	default:
+		break;
+			 //no packet!
        }
-     }
+  }
   return retval;
 }
 //--
