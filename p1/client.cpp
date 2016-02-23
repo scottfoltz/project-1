@@ -61,8 +61,8 @@ int main(int argc, char *argv[])
 	bool userExit = false;
 	//int userExitInt = 0;
 	//Ammount of time the client will run before auto exiting (in seconds)
-	int timeToRun = 1000;
-	char * server_address = (char *) "127.0.0.1";
+	int duration = 1000;
+	string server_address = "127.0.0.1";
 	unsigned short uLength;
 	
 	struct sockaddr_in server_sockaddr;
@@ -87,10 +87,9 @@ int main(int argc, char *argv[])
 				cerr << "	-p port_number ... defaults to 4095" << endl;
 				cerr << "	-n number_of_packets ... defaults to " << number_of_packets << endl;
 				cerr << "   -r delay in microseconds ... defaults to " << uinterval << endl;
-				cerr << "   -t timeToRun ... defaults to " << timeToRun << endl;
+				cerr << "   -d timeToRun ... defaults to 10 seconds" << timeToRun << endl;
 				cerr << "   -e sends an E pack before exiting to the server " << endl;
 				cerr << "   -l sets packet length" << endl;
-				cerr << "   -d duration of the program in seconds " << endl;
                 exit(0);
 
 			case 's':
@@ -108,11 +107,11 @@ int main(int argc, char *argv[])
 			case 'p':
 				server_port	= atoi(optarg);
 				break;
-			case 't':
-				timeToRun = atoi(optarg);
+			case 'd':
+				duration = atoi(optarg);
 				break;
 			case 'e':
-			//Perhaps use this bool to check at the end of the client whether to send e packet
+				//Perhaps use this bool to check at the end of the client whether to send e packet
 				userExit = true;
 				break;
 			case 'l':
@@ -124,9 +123,6 @@ int main(int argc, char *argv[])
 					uLength = MAXIMUM_DATA_LENGTH;
 				}
 				break;
-			case 'd':
-				//duration of the program in seconds
-				//10 should be default
 	        default:
 		        break;
 
@@ -151,7 +147,7 @@ int main(int argc, char *argv[])
 	// Note that gethostbyname() is deprecated but most sample programs use it. The
 	// function has been replaced by getaddrinfo() which is WAY more complicated. Maybe
 	// it is for the best that we stick with gethostbyname(). 
-	server_hostent = gethostbyname(server_address);
+	server_hostent = gethostbyname(server_address.c_str());
 	if (server_hostent == nullptr)
 	{
 		cerr << "ERROR, no such host: " << server_address << endl;
